@@ -21,8 +21,8 @@ runs:
       
       # Install CPAN modules
       opam exec -- bash -lc 'curl -L https://cpanmin.us | perl - App::cpanminus'
-      opam exec -- bash -lc 'cpanm IPC::System::Simple module'
-      opam exec -- bash -lc 'cpanm String::ShellQuote'
+      opam exec -- bash -lc 'export PATH=/cygdrive/c/Strawberry/perl/site/bin:/cygdrive/c/Strawberry/perl/bin:$PATH && cpanm IPC::System::Simple'
+      opam exec -- bash -lc 'export PATH=/cygdrive/c/Strawberry/perl/site/bin:/cygdrive/c/Strawberry/perl/bin:$PATH && cpanm String::ShellQuote'
       opam exec -- bash -lc 'echo "$OLDPWD"'
       opam exec -- bash -lc 'cd "$OLDPWD" && tar -C / -xvf libmbedtls.tar.xz'
 
