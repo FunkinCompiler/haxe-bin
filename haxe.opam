@@ -27,6 +27,7 @@ depends: [
   "extlib" {>= "1.7.8"}
   "ptmap" {>= "2.0.0"}
   "sha"
+  "pcre2" {= "8.0.4"}
   "camlp-streams"
   "conf-libpcre2-8"
   "conf-zlib"
