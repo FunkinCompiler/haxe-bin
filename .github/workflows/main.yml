@@ -2,7 +2,7 @@
 # TODO: support skip ci (https://github.community/t/github-actions-does-not-respect-skip-ci/17325/8)
 
 name: CI
-on: [push, pull_request]
+on: [push, pull_request,workflow_dispatch]
 
 jobs:
   windows64-build:
