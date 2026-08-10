@@ -16,15 +16,13 @@ runs:
     env:
       MBEDTLS_VERSION: 3.6.5
     run: |
-      curl.exe -fsSL -o "libmbedtls.tar.xz" --retry 3 `
-        https://github.com/Simn/mingw64-mbedtls/releases/download/${{ env.MBEDTLS_VERSION }}/mingw64-${{ env.MINGW_ARCH }}-mbedtls-${{ env.MBEDTLS_VERSION }}-1-noarch.tar.xz
-      
-      # Install CPAN modules
-      opam exec -- bash -lc 'curl -L https://cpanmin.us | perl - App::cpanminus'
-      opam exec -- bash -lc 'export PATH=/cygdrive/c/Strawberry/perl/site/bin:/cygdrive/c/Strawberry/perl/bin:$PATH && cpanm IPC::System::Simple'
-      opam exec -- bash -lc 'export PATH=/cygdrive/c/Strawberry/perl/site/bin:/cygdrive/c/Strawberry/perl/bin:$PATH && cpanm String::ShellQuote'
-      opam exec -- bash -lc 'echo "$OLDPWD"'
-      opam exec -- bash -lc 'cd "$OLDPWD" && tar -C / -xvf libmbedtls.tar.xz'
+          Set-PSDebug -Trace 1
+          curl.exe -fsSL -o "libmbedtls.tar.xz" --retry 3 https://github.com/Simn/mingw64-mbedtls/releases/download/2.16.3/mingw64-$($env:MINGW_ARCH)-mbedtls-2.16.3-1.tar.xz
+          & "$($env:CYG_ROOT)/bin/bash.exe" @('-lc', 'curl -L https://cpanmin.us | perl - App::cpanminus')
+          & "$($env:CYG_ROOT)/bin/bash.exe" @('-lc', 'cpanm IPC::System::Simple module')
+          & "$($env:CYG_ROOT)/bin/bash.exe" @('-lc', 'cpanm String::ShellQuote')
+          & "$($env:CYG_ROOT)/bin/bash.exe" @('-lc', 'echo "$OLDPWD"')
+          & "$($env:CYG_ROOT)/bin/bash.exe" @('-lc', 'cd "$OLDPWD" && tar -C / -xvf libmbedtls.tar.xz')
 
 
   - name: Install OCaml libraries
