@@ -7,6 +7,7 @@ runs:
     uses: ocaml/setup-ocaml@v3
     with:
       ocaml-compiler: ${{ env.OCAML_VERSION }}
+
       opam-local-packages: |
         haxe.opam
 
@@ -17,7 +18,14 @@ runs:
     run: |
       curl.exe -fsSL -o "libmbedtls.tar.xz" --retry 3 `
         https://github.com/Simn/mingw64-mbedtls/releases/download/${{ env.MBEDTLS_VERSION }}/mingw64-${{ env.MINGW_ARCH }}-mbedtls-${{ env.MBEDTLS_VERSION }}-1-noarch.tar.xz
-      opam exec -- tar -C / -xvf libmbedtls.tar.xz
+      
+      # Install CPAN modules
+      opam exec -- bash -lc 'curl -L https://cpanmin.us | perl - App::cpanminus'
+      opam exec -- bash -lc 'cpanm IPC::System::Simple module'
+      opam exec -- bash -lc 'cpanm String::ShellQuote'
+      opam exec -- bash -lc 'echo "$OLDPWD"'
+      opam exec -- bash -lc 'cd "$OLDPWD" && tar -C / -xvf libmbedtls.tar.xz'
+
 
   - name: Install OCaml libraries
     uses: nick-fields/retry@v3
