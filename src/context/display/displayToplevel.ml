@@ -82,12 +82,29 @@ class explore_class_path_task com checked recursive f_pack f_module dir pack = o
 								(new explore_class_path_task com checked recursive f_pack f_module (dir ^ file ^ "/") (file :: pack))#run
 							end
 						end
-					| _ ->
+					| _ -> (*FUNK: Adding a hxc path here*)
 						let l = String.length file in
 						if l > 3 && String.sub file (l - 3) 3 = ".hx" then begin
 							try
 								let name =
 									let name = String.sub file 0 (l - 3) in
+									try
+										let dot_pos = String.rindex name '.' in
+										if platform_str = String.sub file dot_pos (String.length name - dot_pos) then
+											String.sub file 0 dot_pos
+										else
+											raise Exit
+									with Not_found -> name
+								in
+								let path = (List.rev pack,name) in
+								let dot_path = if dot_path = "" then name else dot_path ^ "." ^ name in
+								if (List.mem dot_path !exclude) then () else f_module (dir ^ file) path;
+							with _ ->
+								()
+						end else if l > 4 && String.sub file (l - 4) 4 = ".hxc" then begin
+							try
+								let name =
+									let name = String.sub file 0 (l - 4) in
 									try
 										let dot_pos = String.rindex name '.' in
 										if platform_str = String.sub file dot_pos (String.length name - dot_pos) then

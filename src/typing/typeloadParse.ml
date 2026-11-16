@@ -94,9 +94,14 @@ let resolve_module_file com m remap p =
 				with Not_found -> x
 			) in
 			String.concat "/" (x :: l) ^ "/" ^ name
-		) ^ ".hx"
+		)
 	in
-	let file = Common.find_file com compose_path in
+	(*FUNK: Add support for .hxc*)
+	let file =
+		try Common.find_file com (compose_path ^ ".hx")
+		with Not_found ->
+			Common.find_file com (compose_path ^ ".hxc")
+	in
 	let file = (match ExtString.String.lowercase (snd m) with
 	| "con" | "aux" | "prn" | "nul" | "com1" | "com2" | "com3" | "lpt1" | "lpt2" | "lpt3" when Sys.os_type = "Win32" ->
 		(* these names are reserved by the OS - old DOS legacy, such files cannot be easily created but are reported as visible *)
@@ -130,6 +135,7 @@ let resolve_module_file com m remap p =
 		end;
 	end;
 	file
+
 
 let resolve_module_file com m remap p =
 	try

@@ -10,10 +10,15 @@ let get_path_parts f =
 		TODO: i started doubting my sanity while writing this comment, let's somehow
 		refactor this stuff so it doesn't mix up file and module paths and doesn't introduce
 		the weird "path part" entity.
+
+		FUNK: We're affing .hxc check in case the source is a polymod script file
 	*)
 	let l = String.length f in
 	if l > 3 && (String.sub f (l-3) 3) = ".hx" then
 		let f = String.sub f 0 (l-3) in (* strip the .hx *)
+		ExtString.String.nsplit (String.concat "/" (ExtString.String.nsplit f "\\")) "/" (* TODO: wouldn't it be faster to Str.split here? *)
+	else if l > 4 && (String.sub f (l-4) 4) = ".hxc" then
+		let f = String.sub f 0 (l-4) in (* strip the .hxc *)
 		ExtString.String.nsplit (String.concat "/" (ExtString.String.nsplit f "\\")) "/" (* TODO: wouldn't it be faster to Str.split here? *)
 	else
 		ExtString.String.nsplit f "."

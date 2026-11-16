@@ -63,6 +63,7 @@ let generate_type com t =
 	| ["flash";"filters"], "BitmapFilterQuality"
 	| ["flash";"display"], ("BitmapDataChannel" | "GraphicsPathCommand")  -> ()
 	| _ ->
+		(*FUNK: Judging by the "genhx" this probably generates code. No need for .hxc !*)
 	let f = open_out_bin (base_path ^ "/" ^ (match pack with [] -> "" | l -> String.concat "/" l ^ "/") ^ name ^ ".hx") in
 	let ch = IO.output_channel f in
 	let p fmt = IO.printf ch fmt in

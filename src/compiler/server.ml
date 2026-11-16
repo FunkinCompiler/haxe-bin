@@ -587,8 +587,16 @@ let check_module sctx ctx m p =
 	in
 	let check_module_shadowing paths m =
 		List.iter (fun dir ->
-			let file = (dir.c_path ^ (snd m.m_path)) ^ ".hx" in
-			if Sys.file_exists file then begin
+			(* FUNK: Oh my Hundrec, is this ANOTHER .hx instance???*)
+			let file = (dir.c_path ^ (snd m.m_path)) in
+			if Sys.file_exists (file ^ ".hx") then begin
+				let time = file_time file in
+				if time > m.m_extra.m_time then begin
+					ServerMessage.module_path_changed com "" (m,time,file);
+					raise (Dirty (Shadowed file))
+				end
+			end
+			else if Sys.file_exists (file ^ ".hxc") then begin
 				let time = file_time file in
 				if time > m.m_extra.m_time then begin
 					ServerMessage.module_path_changed com "" (m,time,file);
