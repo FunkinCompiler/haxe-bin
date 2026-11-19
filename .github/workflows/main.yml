@@ -493,7 +493,10 @@ jobs:
         run: |
           set -ex
           brew update
-          brew bundle --file=tests/Brewfile --no-upgrade
+          grep -v -E 'cpanminus|perl' tests/Brewfile > /tmp/Brewfile.ci
+          brew bundle --file=/tmp/Brewfile.ci --no-upgrade
+          curl -fsSL https://cpanmin.us -o /usr/local/bin/cpanm
+          chmod +x /usr/local/bin/cpanm
           if which perl | grep -q "/opt/homebrew\|/usr/local"; then
             cpanm --notest IPC::System::Simple String::ShellQuote
           else
