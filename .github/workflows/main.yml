@@ -493,15 +493,20 @@ jobs:
         run: |
           set -ex
           brew update
-          grep -v -E 'cpanminus|perl' tests/Brewfile > /tmp/Brewfile.ci
+          grep -v -E 'cpanminus|perl|opam' tests/Brewfile > /tmp/Brewfile.ci
           brew bundle --file=/tmp/Brewfile.ci --no-upgrade
+
+          # Install standalone cpanm without building Perl from source
           curl -fsSL https://cpanmin.us -o /usr/local/bin/cpanm
           chmod +x /usr/local/bin/cpanm
-          if which perl | grep -q "/opt/homebrew\|/usr/local"; then
-            cpanm --notest IPC::System::Simple String::ShellQuote
-          else
-            sudo cpanm --notest IPC::System::Simple String::ShellQuote
-          fi
+          sudo cpanm --notest IPC::System::Simple String::ShellQuote
+
+          # Install prebuilt opam binary directly (avoids compiling OCaml via Homebrew)
+          OPAM_ARCH=$([ "${{ runner.arch }}" = "ARM64" ] && echo "arm64" || echo "x86_64")
+          curl -fsSL "https://github.com/ocaml/opam/releases/download/${OPAM_VERSION}/opam-${OPAM_VERSION}-${OPAM_ARCH}-macos" -o /usr/local/bin/opam
+          chmod +x /usr/local/bin/opam
+          opam --version
+
           curl -L https://github.com/madler/zlib/releases/download/v$ZLIB_VERSION/zlib-$ZLIB_VERSION.tar.gz | tar xz
           cd zlib-$ZLIB_VERSION
           ./configure
