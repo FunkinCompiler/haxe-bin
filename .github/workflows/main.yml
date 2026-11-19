@@ -1,6 +1,5 @@
-
 name: CI
-on: [push, pull_request,workflow_dispatch]
+on: [push, pull_request, workflow_dispatch]
 
 jobs:
   windows64-build:
@@ -114,7 +113,6 @@ jobs:
         with:
           name: win${{env.ARCH}}Binaries
           path: out
-
 
   windows-build:
     runs-on: windows-latest
@@ -249,7 +247,6 @@ jobs:
           name: win${{env.ARCH}}Binaries
           path: out
 
-
   linux-build:
     runs-on: ubuntu-22.04
     env:
@@ -289,7 +286,6 @@ jobs:
 
       - name: Print Neko version
         run: neko -version 2>&1
-
 
       - name: Install dependencies
         run: |
@@ -393,7 +389,6 @@ jobs:
       - name: Print Neko version
         run: neko -version 2>&1
 
-
       - name: Install dependencies
         run: |
           set -ex
@@ -441,11 +436,20 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-14]
+        include:
+          - os: macos-15
+            platform: mac-arm64
+            arch: ARM64
+          - os: macos-15-large
+            platform: mac
+            arch: X64
     runs-on: ${{ matrix.os }}
     env:
-      PLATFORM: mac${{ matrix.os == 'macos-14' && '-arm64' || '' }}
+      PLATFORM: ${{ matrix.platform }}
       OPAMYES: 1
+      CFLAGS: -mmacosx-version-min=10.13
+      CPATH: /usr/local/include
+      LIBRARY_PATH: /usr/local/lib
       MACOSX_DEPLOYMENT_TARGET: 10.13
       OCAML_VERSION: 5.1.1
       CTYPES: 0.21.1
@@ -459,7 +463,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.opam/
-          key: ${{ matrix.os }}-${{ hashFiles('./haxe.opam', './libs/') }}
+          key: ${{ matrix.os }}-ocaml-${{ env.OCAML_VERSION }}-ctypes-${{ env.CTYPES }}-${{ hashFiles('./haxe.opam', './libs/**') }}
 
       - name: Install Neko from S3
         run: |
@@ -490,8 +494,11 @@ jobs:
           set -ex
           brew update
           brew bundle --file=tests/Brewfile --no-upgrade
-          cpanm IPC::System::Simple
-          cpanm String::ShellQuote
+          if which perl | grep -q "/opt/homebrew\|/usr/local"; then
+            cpanm --notest IPC::System::Simple String::ShellQuote
+          else
+            sudo cpanm --notest IPC::System::Simple String::ShellQuote
+          fi
           curl -L https://github.com/madler/zlib/releases/download/v$ZLIB_VERSION/zlib-$ZLIB_VERSION.tar.gz | tar xz
           cd zlib-$ZLIB_VERSION
           ./configure
@@ -499,7 +506,8 @@ jobs:
           cd ..
           curl -L https://github.com/ARMmbed/mbedtls/archive/v$MBEDTLS_VERSION.tar.gz | tar xz
           cd mbedtls-$MBEDTLS_VERSION
-          sudo make && sudo make install
+          make CFLAGS="$CFLAGS -O2" lib
+          sudo make DESTDIR=/usr/local install
           cd ..
           curl -L https://github.com/PCRE2Project/pcre2/releases/download/pcre2-$PCRE2_VERSION/pcre2-$PCRE2_VERSION.tar.gz | tar xz
           cd pcre2-$PCRE2_VERSION
@@ -511,7 +519,7 @@ jobs:
         if: steps.cache-opam.outputs.cache-hit != 'true'
         run: |
           set -ex
-          opam init # --disable-sandboxing
+          opam init -y -n --disable-sandboxing
           opam update
           opam switch create ${{env.OCAML_VERSION}}
           eval $(opam env)
@@ -557,14 +565,22 @@ jobs:
     steps:
       - name: Checkout the repository
         uses: actions/checkout@main
+        with:
+          submodules: recursive
+
       - uses: actions/download-artifact@v4
         with:
           name: macX64Binaries
           path: macX64Binaries
+
       - uses: actions/download-artifact@v4
         with:
           name: macArmBinaries
           path: macArmBinaries
+
+      - name: Set ADD_REVISION=1 for non-release
+        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+        run: echo "ADD_REVISION=1" >> $GITHUB_ENV
 
       - name: Make universal binary
         run: |
@@ -573,20 +589,22 @@ jobs:
           tar -xf macArmBinaries/*_bin.tar.gz -C macArmBinaries --strip-components=1
           lipo -create -output haxe macX64Binaries/haxe macArmBinaries/haxe
           lipo -create -output haxelib macX64Binaries/haxelib macArmBinaries/haxelib
-          make -s package_unix package_installer_mac PACKAGE_INSTALLER_MAC_ARCH=universal
-          ls -l out
+          lipo -info ./haxe ./haxelib
           otool -L ./haxe
           otool -L ./haxelib
-
-      - name: Upload artifact (universal)
-        uses: actions/upload-artifact@v4
-        with:
-          name: macBinaries
-          path: out
+          make -s -o haxe -o haxelib package_unix package_installer_mac PACKAGE_INSTALLER_MAC_ARCH=universal
+          ls -l out
 
   deploy:
     if: success() && github.repository_owner == 'HaxeFoundation' && github.event_name != 'pull_request'
-    needs: [linux-build, linux-arm64-build, mac-build-universal, windows-build, windows64-build]
+    needs:
+      [
+        linux-build,
+        linux-arm64-build,
+        mac-build-universal,
+        windows-build,
+        windows64-build,
+      ]
     runs-on: ubuntu-22.04
     steps:
       # this is only needed for to get `COMMIT_DATE`...
@@ -662,7 +680,14 @@ jobs:
 
   deploy_apidoc:
     if: success() && github.repository_owner == 'HaxeFoundation' && github.event_name != 'pull_request'
-    needs: [linux-build, linux-arm64-build, mac-build-universal, windows-build, windows64-build]
+    needs:
+      [
+        linux-build,
+        linux-arm64-build,
+        mac-build-universal,
+        windows-build,
+        windows64-build,
+      ]
     runs-on: ubuntu-22.04
     steps:
       - name: Install dependencies
