@@ -447,7 +447,7 @@ jobs:
     env:
       PLATFORM: ${{ matrix.platform }}
       OPAMYES: 1
-      CFLAGS: -mmacosx-version-min=10.13
+      CFLAGS: -mmacosx-version-min=10.13 -Wno-error=incompatible-function-pointer-types -Wno-error=int-conversion
       CPATH: /usr/local/include
       LIBRARY_PATH: /usr/local/lib
       MACOSX_DEPLOYMENT_TARGET: 10.13
