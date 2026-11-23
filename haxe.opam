@@ -19,6 +19,7 @@ build: [
 install: [make "install" "INSTALL_DIR=%{prefix}%"]
 remove: [make "uninstall" "INSTALL_DIR=%{prefix}%"]
 depends: [
+  "luv" {>= "0.5.13"}
   ("ocaml" {>= "5.0"} & ("camlp5" {build}) & ("ocamlfind" {build}))
     | ("ocaml" {>= "4.08" & < "5.0"} & ("camlp5" {build & = "8.03.04"}) & ("ocamlfind" {build & = "1.9.1"}))
   "dune" {>= "1.11" & < "3.16"}
@@ -32,5 +33,4 @@ depends: [
   "conf-libpcre2-8"
   "conf-zlib"
   "conf-neko"
-  "luv" {= "0.5.14"}
 ]
