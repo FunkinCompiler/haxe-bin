@@ -440,19 +440,23 @@ jobs:
           - os: macos-15
             platform: mac-arm64
             arch: ARM64
+            brew_prefix: /opt/homebrew
           - os: macos-15-intel
             platform: mac
             arch: X64
+            brew_prefix: /usr/local
     runs-on: ${{ matrix.os }}
     env:
       PLATFORM: ${{ matrix.platform }}
       OPAMYES: 1
-      CFLAGS: -mmacosx-version-min=10.13 -Wno-error=incompatible-function-pointer-types -Wno-error=int-conversion -I/usr/local/include
-      LDFLAGS: -L/usr/local/lib
-      CPATH: /usr/local/include
-      LIBRARY_PATH: /usr/local/lib
+      CFLAGS: -mmacosx-version-min=10.13 -Wno-error=incompatible-function-pointer-types -Wno-error=int-conversion -I/usr/local/include -I${{ matrix.brew_prefix }}/include
+      LDFLAGS: -L/usr/local/lib -L${{ matrix.brew_prefix }}/lib
+      CPATH: /usr/local/include:${{ matrix.brew_prefix }}/include
+      LIBRARY_PATH: /usr/local/lib:${{ matrix.brew_prefix }}/lib
+      PKG_CONFIG_PATH: /usr/local/lib/pkgconfig:${{ matrix.brew_prefix }}/lib/pkgconfig
       MACOSX_DEPLOYMENT_TARGET: 10.13
       OCAML_VERSION: 5.1.1
+      CTYPES: 0.21.1
     steps:
       - uses: actions/checkout@main
         with:
@@ -463,7 +467,6 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.opam/
-          # FIX: Bumped cache key (v2) so opam rebuilds the OCaml switch with -I/usr/local/include baked into ocamlc/ocamlopt
           key: ${{ matrix.os }}-v2-ocaml-${{ env.OCAML_VERSION }}-ctypes-${{ env.CTYPES }}-${{ hashFiles('./haxe.opam', './libs/**') }}
 
       - name: Install Neko from S3
@@ -499,14 +502,15 @@ jobs:
           brew bundle --file=/tmp/Brewfile.ci --no-upgrade
 
           # Install standalone cpanm without building Perl from source
+          sudo mkdir -p /usr/local/bin
           curl -fsSL https://cpanmin.us -o /usr/local/bin/cpanm
-          chmod +x /usr/local/bin/cpanm
+          sudo chmod +x /usr/local/bin/cpanm
           sudo cpanm --notest IPC::System::Simple String::ShellQuote
 
           # Install prebuilt opam binary directly (avoids compiling OCaml via Homebrew)
           OPAM_ARCH=$([ "${{ runner.arch }}" = "ARM64" ] && echo "arm64" || echo "x86_64")
           curl -fsSL "https://github.com/ocaml/opam/releases/download/${OPAM_VERSION}/opam-${OPAM_VERSION}-${OPAM_ARCH}-macos" -o /usr/local/bin/opam
-          chmod +x /usr/local/bin/opam
+          sudo chmod +x /usr/local/bin/opam
           opam --version
 
           curl -L https://github.com/madler/zlib/releases/download/v$ZLIB_VERSION/zlib-$ZLIB_VERSION.tar.gz | tar xz
@@ -531,10 +535,10 @@ jobs:
           set -ex
           opam init -y -n --disable-sandboxing
           opam update
-          opam switch create ${{env.OCAML_VERSION}}
+          opam switch create ${{ env.OCAML_VERSION }}
           eval $(opam env)
           opam env
-          opam pin add ctypes ${{env.CTYPES}} --yes
+          opam pin add ctypes ${{ env.CTYPES }} --yes
           opam pin add haxe . --no-action
           opam install haxe --deps-only --assume-depexts
           opam list
@@ -568,7 +572,6 @@ jobs:
         with:
           name: macArmBinaries
           path: out
-
   mac-build-universal:
     needs: mac-build
     runs-on: macos-latest
